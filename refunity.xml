@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Module>
+<ModulePrefs
+  title="Refunity"
+  author="Travkin Ivan"
+  author_email="iwannt@gmail.com"
+  description="Create an annotated list of papers and links on some subject (collaboration tool for academics)"
+  thumbnail="http://lh3.ggpht.com/_3nUimIZFOIY/TRv4ncp6g0I/AAAAAAAAA2I/2fo027-JiEE/s800/refunitylogo.jpg"
+  screenshot="http://lh3.ggpht.com/_3nUimIZFOIY/TRv4ncp6g0I/AAAAAAAAA2I/2fo027-JiEE/s800/refunitylogo.jpg" 
+  height="500" scrolling="true">
+  <Require feature="wave" /> 
+</ModulePrefs>
+<Content type="html"><![CDATA[
+
+<head>
+
+<script type="text/javascript">
+
+var $ = function (id) { return document.getElementById(id); }
+
+String.prototype.plain = function () {
+  var newString = this;
+  newString = newString.replace(/</g, "&lt;");
+  newString = newString.replace(/>/g, "&gt;");
+  newString = newString.replace(/&/g, "&amp;");
+  return newString;
+}
+
+function getAddNoteWidgetForKey( aKey ) {
+  var code;
+  
+  if(!this.counter) { this.counter = 0; }
+  
+  code = '<input type="text" id="newNoteText' + this.counter + '">'
+    + '<input type="button" value="add note!" onclick="addNewNote(\'' + aKey
+    + '\', \'newNoteText' + this.counter + '\');">';
+  
+  this.counter += 1;
+  return code;
+}
+
+function addNewNote(aKey, anInputTextId) {
+  if( !$(anInputTextId).value.trim() ) { return false; }
+
+  var state = wave.getState();
+  var item = JSON.parse( state.get(aKey) );
+  var userName = wave.getViewer().getDisplayName();
+  var delta = {};
+  var key = + new Date() + userName;
+  var note = {};
+  
+  note.addedBy = userName;
+  note.text = $(anInputTextId).value;
+  delta[key] = JSON.stringify(note);
+  state.submitDelta(delta);
+  
+  item.notes.push(key);
+  delta = {};
+  delta[aKey] = JSON.stringify(item);
+  state.submitDelta(delta);
+}
+
+function stateCallback () {
+  var state = wave.getState();
+  
+  renderContacts (state);
+  renderDescription (state);
+  renderPapers (state);
+  renderLinks (state);
+}
+
+function renderPapers (state) {
+  var papers = state.get('papers');
+  if(!papers) { return false; }
+
+  papers = JSON.parse(papers);
+  var paper;
+  var code = '';
+  
+  for (ea in papers) {
+    paper = JSON.parse( state.get( papers[ea] ) );
+    
+    code += '<div class="paper"><p>' + paper.reference.plain()
+      + ' (added by: ' + paper.addedBy + ')</p><ul>';
+    
+    code += getNotes(state, paper.notes);
+    
+    code += '<li>' + getAddNoteWidgetForKey( papers[ea] ) + '</li></ul></div>';
+  }
+  
+  $("papers").innerHTML = code;
+}
+
+function renderDescription (state) {
+  var description = state.get('description');
+  if (!description) {
+    description = 'click here to edit description about subject of this refunity space...';
+  }
+  $('description').innerHTML = description.plain();
+  $('newDescriptionText').value = description;
+}
+
+function renderLinks (state) {
+  var links = state.get('links');
+  if(!links) { return false; }
+
+  links = JSON.parse(links);
+  var link;
+  var code = '';
+  
+  for (ea in links) {
+    link = JSON.parse( state.get( links[ea] ) );
+    
+    code += '<div class="link"><p>' + link.title.plain()
+      + ' (added by: ' + link.addedBy + ')<br>'
+      + '<a href="' + link.url + '">' + link.url + '</a></p><ul>';
+    
+    code += getNotes(state, link.notes);
+    
+    code += '<li>' + getAddNoteWidgetForKey( links[ea] ) + '</li></ul></div>';
+  }
+  
+  $("links").innerHTML = code;
+}
+
+function getNotes(state, notes) {
+  var code = '';
+  var note;
+  for (each in notes) {
+    note = JSON.parse( state.get( notes[each] ) );
+    code += '<li>' + note.addedBy + ': ' + note.text + '</li>'
+  }
+  return code;
+}
+
+function updateDescription () {
+  var state = wave.getState();
+  var delta = {};
+  delta['description'] = $('newDescriptionText').value;
+  state.submitDelta(delta);
+}
+
+function addNewPaper () {
+  // paper = {"reference": aString, "addedBy": aString, "notes": [aKey, aKey, ...]}
+
+  if( !$('newPaperReference').value.trim() ) { return false; }
+
+  var state = wave.getState();
+  
+  var papers = state.get('papers');
+  if(!papers) { papers = []; } else { papers = JSON.parse( papers ); }
+  
+  var userName = wave.getViewer().getDisplayName();
+  var delta = {};
+  var key = + new Date() + userName;
+  var paper = {};
+  
+  paper.reference = $('newPaperReference').value;
+  paper.addedBy = userName;
+  paper.notes = [];
+  delta[key] = JSON.stringify(paper);
+  state.submitDelta(delta);
+  $('newPaperReference').value = '';
+  
+  papers.push( key );
+  delta = {'papers': JSON.stringify(papers)};
+  state.submitDelta(delta);
+}
+
+function addNewLink () {
+  // link = {"title": aString, "url": aString, "addedBy": aString, "notes": [aKey, aKey, ...]}
+  
+  if( !$('newLinkTitle').value.trim() || !$('newLinkUrl').value.trim() ) { return false; }
+
+  var state = wave.getState();
+  
+  var links = state.get('links');
+  if(!links) { links = []; } else { links = JSON.parse( links ); }
+  
+  var userName = wave.getViewer().getDisplayName();
+  var delta = {};
+  var key = + new Date() + userName;
+  var link = {};
+  
+  link.title = $('newLinkTitle').value;
+  link.url = $('newLinkUrl').value;
+  link.addedBy = userName;
+  link.notes = [];
+  delta[key] = JSON.stringify(link);
+  state.submitDelta(delta);
+  $('newLinkTitle').value = '';
+  $('newLinkUrl').value = '';
+  
+  links.push( key );
+  delta = {'links': JSON.stringify(links)};
+  state.submitDelta(delta);
+}
+
+function renderContacts(state) {
+  var contacts = state.get('contacts');
+  if (!contacts) { contacts = []; } else { contacts = JSON.parse(contacts); }
+  
+  var contact, code;
+  
+  code = '<ul>'
+
+  for (ea in contacts) {
+    contact = JSON.parse( state.get(contacts[ea]) );
+    code += '<li>' + contact.addedBy + ': ' + contact.info + '</li>';
+  }
+
+  code += '<li><a href="#" onclick="addMyContacts(); return false;">i am involved!</a> (others can ask me for help)</li></ul>'
+  $('contacts').innerHTML = code;
+}
+
+function addMyContacts() {
+  var info;
+  info = prompt('please, input any of your contacts so others can connect with you (e.q. e-mail, twitter, blog, etc.)');
+  if(!info || !info.trim()) { return false; }
+
+  var state = wave.getState();
+
+  var contacts = state.get('contacts');
+  if (!contacts) { contacts = []; } else { contacts = JSON.parse( contacts ) }
+  
+  var userName = wave.getViewer().getDisplayName();
+  var delta = {};
+  var key = + new Date() + userName;
+  var contact = {};
+  
+  contact.info = info;
+  contact.addedBy = userName;
+  delta[key] = JSON.stringify( contact );
+  state.submitDelta(delta);
+  
+  contacts.push(key);
+  delta = {"contacts": JSON.stringify(contacts) };
+  state.submitDelta(delta);
+}
+
+function initialize() {
+  if (wave && wave.isInWaveContainer() ) {
+    wave.setStateCallback(stateCallback);
+  }
+}
+
+gadgets.util.registerOnLoadHandler(initialize);
+
+</script>
+
+<style type="text/css">
+  body { font-family: Helvetica, Arial, "sans-serif"; }
+  h1, h2, a { color: #484; }
+  .link, .paper { margin-bottom: 4px; padding-left: 1em; border-radius: 5px; }
+  .link { background: #bfb; border-left: solid 5px #8c8; }
+  .paper { background: #ddd; border-left: solid 5px #888; }
+  #description:hover { background: #ffb; }
+  #container { margin: 0; height: 490px; overflow: auto; }
+</style>
+
+</head>
+<body><div id="container">
+
+<p id="description" onclick="$('description').style.display='none'; $('descriptionEditor').style.display='block'; $('newDescriptionText').focus();"></p>
+<p id="descriptionEditor" style="display: none;">
+  <input type="text" id="newDescriptionText">
+  <input type="button" value="Save" onClick="updateDescription(); $('descriptionEditor').style.display='none'; $('description').style.display='block';">
+  <input type="button" value="Cancel" onClick="$('descriptionEditor').style.display='none'; $('description').style.display='block';">
+</p>
+
+<p><em>Researchers:</em></p>
+
+<div id="contacts"></div>
+
+<h2>Papers</h2>
+
+<p>
+  Reference: <input type="text" id="newPaperReference">
+  <input type="button" value="add new!" onClick="addNewPaper();">
+</p>
+
+<div id="papers"></div>
+
+<h2>Links</h2>
+
+<p>
+  Title: <input type="text" id="newLinkTitle">,
+  url: <input type="text" id="newLinkUrl">
+  <input type="button" value="add new!" onClick="addNewLink();">
+</p>
+
+<div id="links"></div>
+
+</div></body>
+
+]]></Content>
+</Module>
