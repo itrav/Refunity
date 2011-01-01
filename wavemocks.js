@@ -33,7 +33,7 @@
 	gadgets.util = { registerOnLoadHandler: function (aFunction) { window.onload = aFunction; } };
 
 	root.wave = {
-		getState: function () { return state; },
+		getState: function () { return root.state; },
 		stateCallback: function () {},
 		setStateCallback: function (aFunction) { this.stateCallback = aFunction; aFunction(); },
 		isInWaveContainer: function () { return true; },
