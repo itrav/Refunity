@@ -24,16 +24,16 @@
 * THE SOFTWARE.
 */
 
-(function (root) {
+(function (window) {
 
 	// some constants:
 	var userName = 'User Name';
 
-	root.gadgets = {};
+	window.gadgets = {};
 	gadgets.util = { registerOnLoadHandler: function (aFunction) { window.onload = aFunction; } };
 
-	root.wave = {
-		getState: function () { return root.state; },
+	window.wave = {
+		getState: function () { return window.state; },
 		stateCallback: function () {},
 		setStateCallback: function (aFunction) { this.stateCallback = aFunction; aFunction(); },
 		isInWaveContainer: function () { return true; },
@@ -42,7 +42,7 @@
 		}
 	};
 
-	root.state = {
+	window.state = {
 		get: function ( aKey ) { return this[aKey]; },
 		submitDelta: function ( delta ) { for (ea in delta) this[ea] = delta[ea]; wave.stateCallback(); }
 	};
