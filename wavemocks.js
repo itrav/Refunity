@@ -26,7 +26,7 @@
 
 (function (root) {
 
-	// some constants
+	// some constants:
 	var userName = 'User Name';
 
 	root.gadgets = {};
